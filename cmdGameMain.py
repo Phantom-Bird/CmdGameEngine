@@ -1,4 +1,4 @@
-from cmd_cur import delln
+from cmd_cur import *
 import time
 from typing import List, Union
 from msvcrt import getwch
@@ -18,22 +18,42 @@ class CGMain():
         self.n:int = 0  # 选项个数
         self.i:int = 0  # 当前选项
 
-    def mainloop(self, timeout:Union[int,float]=-1, doUpDown:bool=True):
-        pass
+    def mainloop(self, timeout:Union[int,float]=-1, doUpDown:bool=True) -> bool:
+        '''
+        开始一轮事件循环，监听键盘事件
+        参数
+        ===========================
+        timeout: 超时的秒数（无：-1）
+        doUpDown: 监听方向键
+        ===========================
+        返回值：是否超时
+        '''
+        endt = time.time() + timeout
+        while True:
+            ch = getwch()
+            if ch == 'H' and doUpDown:
+                self.select(self.i - 1)
+            if ch == 'P' and doUpDown:
+                self.select(self.i + 1)
+            elif ch in '\r\n':
+                return False
+            if timeout != -1 and time.time() >= endt:
+                return True
+                
 
-    def next(self, p:str, options:List[str], timeout:Union[int,float]=-1):
+    def next(self, p:str, options:List[str], timeout:Union[int,float]=-1) -> int:
         '''
         新增一段故事，并要求玩家做出选择
         参数
         ==============
         p: 故事新增文段
         options: 选项
-        timeout: 超时的秒数（无默认为-1）
+        timeout: 超时的秒数（无：-1）
         ==============
         返回值
         ====
         未超时，返回选择的序号；
-        超时，返回None
+        超时，返回-1
         ====
         '''
         # 更新变量
@@ -44,39 +64,56 @@ class CGMain():
         self.paragraph += p + '\n'  
         print(p)
 
+        _, rl = getxy()  # 记住光标位置，方便回退
+
         # options 为空处理
         if not options:
             self.mainloop(timeout, doUpDown=False)
-            return None
+            return -1
 
-        self.flush(delline=False)
-        self.mainloop(timeout)
-        self.flush(showopt=False)
+        # 绘制选项
+        self.flush(delline=False, showopt=True)
+        # 事件循环
+        flag = self.mainloop(timeout)
 
-    def flush(self, delline:bool=True, showopt:bool=True):
+        self.flush(cover=True)  # 清除选项
+        gotoxy(0, rl)  # 回退光标
+
+        if flag:
+            return -1
+        else:
+            return self.i
+
+    def flush(self, delline:bool=True, showopt:bool=False, cover:bool=False):
         '''
         刷新选项
         参数
         ====================
-        delln: 是否删除原来的选项
-        showopt: 是否显示新选项
+        delln: 是否覆盖原来的选项
+        showopt: 是否刷新选项名称
+        cover: 是否删除原来的选项
         ====================
         '''
         if delline:
             delln(self.n)
-        if showopt:
-            for i in range(self.n):
-                print('[*]' if (self.i==i) else '[ ]', self.options[i])
-                #              是否被选择
+        for i in range(self.n):
+            if cover:
+                print(' ' * (4+len(self.options[i])*2))  # *2是因为有全宽字符，+4是因为选择框('[ ] ')
+            else:
+                print('[*]' if (self.i==i) else '[ ]',  # 是否被选择
+                      self.options[i] if showopt else '')
+            
+    def select(self, i:int, flush:bool=True):
+        self.i = i % self.n
+        if flush:
+            self.flush()
+
             
 if __name__ == '__main__':
     cgm = CGMain()
-
-    # 流水选项
-    cgm.next('Hello', list('ABCDE'))
-    cgm.flush(False)  # 为了对抗清屏，请勿模仿
-    for _ in range(2):
-        for i in range(5):
-            cgm.i = i
-            cgm.flush()
-            time.sleep(0.2)
+    op = ['好啊，很好啊', '不好不好']
+    c = cgm.next('你好, CGE', op)
+    if c == -1:
+        print('timeout')
+    else:
+        print(op[c])
