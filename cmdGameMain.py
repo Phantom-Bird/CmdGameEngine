@@ -117,3 +117,5 @@ if __name__ == '__main__':
         print('timeout')
     else:
         print(op[c])
+    print('按任意键退出...')
+    getwch()
