@@ -33,6 +33,3 @@ def getxy():
     hOut = ctypes.windll.kernel32.GetStdHandle(STD_OUTPUT_HANDLE)
     ctypes.windll.kernel32.GetConsoleScreenBufferInfo(hOut, pointer(csbi))
     return csbi.dwCursorPosition.X, csbi.dwCursorPosition.Y
-
-def delln(n):
-    gotoxy(0, getxy()[1] - n)

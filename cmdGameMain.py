@@ -1,8 +1,9 @@
 from cmd_cur import *
 import time
 from typing import List, Union
-from msvcrt import getwch
+from msvcrt import getch, kbhit
 from const import *
+
 
 def show(*args:str, delete:bool=False):
     '''
@@ -41,19 +42,36 @@ class CGMain():
         ===========================
         返回值：是否超时
         '''
-        endt = time.time() + timeout
-        while True:
-            ch = getwch()
-            if ch in 'HK' and doUpDown:  # ↓：'\0H'；←：'\0K'
-                self.select(self.i - 1)
-            if ch in 'PM' and doUpDown:  # ↑：'\0P'；→：'\0M'
-                self.select(self.i + 1)
-            elif ch in '\r\n':
-                return False
-            if timeout != -1 and time.time() >= endt:
-                return True
-                
+        start = time.time()
+        print()  # 进度条另起一行
+        _, tby = getxy()  # 记住进度条位置，方便回退
 
+        while True:
+           
+            t = time.time() - start
+            if t >= timeout:
+                show('\r', ' '*60)  # 消除痕迹是个好习惯
+                return True
+            
+            # 进度条长度为50
+            a = int(t*50//timeout)
+            b = 50 - a
+            show('\r时限[', BLOCK*a, ' '*b, ']')
+
+            if kbhit():  # 超时判断不能阻塞
+                ch = getch()
+                if (ch==b'H' or ch==b'K') and doUpDown:  # ↓：'\xe0H'；←：'\xe0K'
+                    self.select(self.i - 1)
+                elif (ch==b'P' or ch==b'M') and doUpDown:  # ↑：'\xe0P'；→：'\xe0M'
+                    self.select(self.i + 1)
+                elif ch == b'\r':
+                    if timeout == -1:
+                        show('\r', ' '*60)  # 消除痕迹是个好习惯
+                    return False
+                gotoxy(0, tby)
+
+            time.sleep(TICK_SEC)
+        
     def next(self, p:str, options:List[str], timeout:Union[int,float]=-1) -> int:
         '''
         新增一段故事，并要求玩家做出选择
@@ -124,7 +142,7 @@ class CGMain():
 if __name__ == '__main__':
     cgm = CGMain()
     op = ['好好好    ', '不好不好    ', '鬼！']
-    c = cgm.next('你好, CGE', op)
+    c = cgm.next('你好, CGE', op, timeout=10)
     if c == -1:
         print('你在犹豫什么？')
     elif c == 0:
@@ -134,6 +152,5 @@ if __name__ == '__main__':
     elif c == 2:
         print('鬼！')
     else:
-        print('我超，挂')
-    print('按任意键退出...')
-    getwch()
+        print('我超，挂')  # 目前没有不开挂的方法能够触发这个
+    __import__('os').system('pause')
