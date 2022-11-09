@@ -2,14 +2,25 @@ from cmd_cur import *
 import time
 from typing import List, Union
 from msvcrt import getwch
+from const import *
 
-SELECT = '*'
-
-def show(*args):
+def show(*args:str, delete:bool=False):
     '''
     print(*args, sep='', end='', flush=True)
+    参数
+    ====================================
+    delete: 为真时将所有非空字符替换成空格
+    ====================================
     '''
-    print(*args, sep='', end='', flush=True)
+    if delete:
+        dels(''.join(args))
+    else:
+        print(*args, sep='', end='', flush=True)
+
+def dels(string:str):
+    rows = string.splitlines()
+    for i in rows:
+        print(' ' * len(i) * 6)  # ascii空格不会导致换行，随便浪
 
 class CGMain():
     def __init__(self):
@@ -17,6 +28,8 @@ class CGMain():
         self.options:List[str] = []  # 选项
         self.n:int = 0  # 选项个数
         self.i:int = 0  # 当前选项
+        self.sx:int = 0  # 当前故事部分结束位置
+        self.sy:int = 0
 
     def mainloop(self, timeout:Union[int,float]=-1, doUpDown:bool=True) -> bool:
         '''
@@ -64,7 +77,7 @@ class CGMain():
         self.paragraph += p + '\n'  
         print(p)
 
-        _, rl = getxy()  # 记住光标位置，方便回退
+        self.sx, self.sy = getxy()  # 记住光标位置，方便回退
 
         # options 为空处理
         if not options:
@@ -72,50 +85,55 @@ class CGMain():
             return -1
 
         # 绘制选项
-        self.flush(delline=False, showopt=True)
+        self.flush()
         # 事件循环
         flag = self.mainloop(timeout)
 
         self.flush(cover=True)  # 清除选项
-        gotoxy(0, rl)  # 回退光标
+        self.back2story()  # 回退光标
 
         if flag:
             return -1
         else:
             return self.i
 
-    def flush(self, delline:bool=True, showopt:bool=False, cover:bool=False):
+    def flush(self, cover:bool=False):
         '''
         刷新选项
         参数
-        ====================
-        delln: 是否覆盖原来的选项
-        showopt: 是否刷新选项名称
+        ========================
         cover: 是否删除原来的选项
-        ====================
+        ========================
         '''
-        if delline:
-            delln(self.n)
+        self.back2story()
         for i in range(self.n):
-            if cover:
-                print(' ' * (4+len(self.options[i])*2))  # *2是因为有全宽字符，+4是因为选择框('[ ] ')
-            else:
-                print('[*]' if (self.i==i) else '[ ]',  # 是否被选择
-                      self.options[i] if showopt else '')
+            show('[*] ' if (self.i==i) else '[ ] ',  # 是否被选择
+                 self.options[i],
+                 delete=cover)
             
     def select(self, i:int, flush:bool=True):
         self.i = i % self.n
         if flush:
             self.flush()
 
+    def back2story(self):
+        gotoxy(self.sx, self.sy)
+
+
             
 if __name__ == '__main__':
     cgm = CGMain()
-    op = ['好啊，很好啊', '不好不好']
+    op = ['好好好    ', '不好不好    ', '鬼！']
     c = cgm.next('你好, CGE', op)
     if c == -1:
-        print('timeout')
+        print('你在犹豫什么？')
+    elif c == 0:
+        print('好！')
+    elif c == 1:
+        print('焯！')
+    elif c == 2:
+        print('鬼！')
     else:
-        print(op[c])
+        print('我超，挂')
     print('按任意键退出...')
     getwch()

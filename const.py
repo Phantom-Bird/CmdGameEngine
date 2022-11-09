@@ -1,0 +1,3 @@
+SELECT = '*'
+BLOCK = '█'
+SBOX = '[%s]'
