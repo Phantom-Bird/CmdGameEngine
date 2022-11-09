@@ -20,7 +20,7 @@ def show(*args:str, delete:bool=False):
 def dels(string:str):
     rows = string.splitlines()
     for i in rows:
-        print(' ' * len(i) * 6)  # ascii空格不会导致换行，随便浪
+        print(' ' * len(i) * 6)  # ascii空格不会在cmd导致换行，随便浪
 
 class CGMain():
     def __init__(self):
@@ -44,9 +44,9 @@ class CGMain():
         endt = time.time() + timeout
         while True:
             ch = getwch()
-            if ch == 'H' and doUpDown:
+            if ch in 'HK' and doUpDown:  # ↓：'\0H'；←：'\0K'
                 self.select(self.i - 1)
-            if ch == 'P' and doUpDown:
+            if ch in 'PM' and doUpDown:  # ↑：'\0P'；→：'\0M'
                 self.select(self.i + 1)
             elif ch in '\r\n':
                 return False
